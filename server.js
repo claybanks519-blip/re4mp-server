@@ -8,8 +8,6 @@ const cors = require('cors');
 const crypto = require('crypto');
 const fs = require('fs');
 const path = require('path');
-const { Resend } = require('resend');
-
 const PORT = process.env.PORT || 3001;
 const JWT_SECRET = process.env.JWT_SECRET || 'dev-secret-change-in-prod';
 const DB_PATH = path.join(__dirname, 're4mp-db.json');
@@ -17,34 +15,43 @@ const DB_PATH = path.join(__dirname, 're4mp-db.json');
 const RESEND_API_KEY = process.env.RESEND_API_KEY || '';
 const BASE_URL = process.env.BASE_URL || 'https://re4mp-server.onrender.com';
 
-const resend = new Resend(RESEND_API_KEY);
-
 async function sendVerificationEmail(email, token) {
   const link = `${BASE_URL}/auth/verify/${token}`;
-  await resend.emails.send({
-    from: 'RE4MP <onboarding@resend.dev>',
-    to: email,
-    subject: 'Verify your RE4MP account',
-    html: `
-      <div style="background:#080c12;color:#e8e0d0;font-family:sans-serif;padding:40px;max-width:480px;margin:0 auto;">
-        <div style="font-size:28px;font-weight:700;letter-spacing:4px;margin-bottom:8px;">
-          <span style="color:#b01828">R</span>E4MP
+  const res = await fetch('https://api.resend.com/emails', {
+    method: 'POST',
+    headers: {
+      'Authorization': `Bearer ${RESEND_API_KEY}`,
+      'Content-Type': 'application/json'
+    },
+    body: JSON.stringify({
+      from: 'RE4MP <onboarding@resend.dev>',
+      to: email,
+      subject: 'Verify your RE4MP account',
+      html: `
+        <div style="background:#080c12;color:#e8e0d0;font-family:sans-serif;padding:40px;max-width:480px;margin:0 auto;">
+          <div style="font-size:28px;font-weight:700;letter-spacing:4px;margin-bottom:8px;">
+            <span style="color:#b01828">R</span>E4MP
+          </div>
+          <div style="font-size:11px;color:#7a7870;letter-spacing:3px;margin-bottom:32px;text-transform:uppercase;">
+            Multiplayer Bridge
+          </div>
+          <div style="font-size:14px;color:#c8c4bc;line-height:1.8;margin-bottom:32px;">
+            Thanks for signing up. Click the button below to verify your email address and activate your account.
+          </div>
+          <a href="${link}" style="display:inline-block;background:#b01828;color:#fff;padding:12px 32px;text-decoration:none;font-size:13px;letter-spacing:4px;text-transform:uppercase;font-weight:600;">
+            Verify Account
+          </a>
+          <div style="margin-top:32px;font-size:10px;color:#504840;letter-spacing:1px;">
+            This link expires in 24 hours. If you didn't create an account, ignore this email.
+          </div>
         </div>
-        <div style="font-size:11px;color:#7a7870;letter-spacing:3px;margin-bottom:32px;text-transform:uppercase;">
-          Multiplayer Bridge
-        </div>
-        <div style="font-size:14px;color:#c8c4bc;line-height:1.8;margin-bottom:32px;">
-          Thanks for signing up. Click the button below to verify your email address and activate your account.
-        </div>
-        <a href="${link}" style="display:inline-block;background:#b01828;color:#fff;padding:12px 32px;text-decoration:none;font-size:13px;letter-spacing:4px;text-transform:uppercase;font-weight:600;">
-          Verify Account
-        </a>
-        <div style="margin-top:32px;font-size:10px;color:#504840;letter-spacing:1px;">
-          This link expires in 24 hours. If you didn't create an account, ignore this email.
-        </div>
-      </div>
-    `
+      `
+    })
   });
+  if (!res.ok) {
+    const err = await res.text();
+    throw new Error(`Resend API error: ${err}`);
+  }
 }
 
 // ─── JSON Database ────────────────────────────────────────────────────────────
