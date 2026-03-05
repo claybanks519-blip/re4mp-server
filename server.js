@@ -8,26 +8,21 @@ const cors = require('cors');
 const crypto = require('crypto');
 const fs = require('fs');
 const path = require('path');
-const nodemailer = require('nodemailer');
+const { Resend } = require('resend');
 
 const PORT = process.env.PORT || 3001;
 const JWT_SECRET = process.env.JWT_SECRET || 'dev-secret-change-in-prod';
 const DB_PATH = path.join(__dirname, 're4mp-db.json');
 
-// Email config — set these in Render environment variables
-const EMAIL_USER = process.env.EMAIL_USER || '';
-const EMAIL_PASS = process.env.EMAIL_PASS || '';
-const BASE_URL   = process.env.BASE_URL   || 'https://re4mp-server.onrender.com';
+const RESEND_API_KEY = process.env.RESEND_API_KEY || '';
+const BASE_URL = process.env.BASE_URL || 'https://re4mp-server.onrender.com';
 
-const transporter = nodemailer.createTransport({
-  service: 'gmail',
-  auth: { user: EMAIL_USER, pass: EMAIL_PASS }
-});
+const resend = new Resend(RESEND_API_KEY);
 
 async function sendVerificationEmail(email, token) {
   const link = `${BASE_URL}/auth/verify/${token}`;
-  await transporter.sendMail({
-    from: `"RE4MP" <${EMAIL_USER}>`,
+  await resend.emails.send({
+    from: 'RE4MP <onboarding@resend.dev>',
     to: email,
     subject: 'Verify your RE4MP account',
     html: `
